@@ -1,0 +1,8 @@
+up down
+left right
+coner
+4321  
+2314
+3421 left right
+
+
