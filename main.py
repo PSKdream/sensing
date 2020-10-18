@@ -29,12 +29,13 @@ def main():
     df_train4, df_test4 = load_dataset('./dataser_Coor/SU4/perfectly_correlated.csv')
     df_train5, df_test5 = load_dataset('./dataser_Coor/SU5/perfectly_correlated.csv')
 
+
     #environment should have the entire dataset as an input parameter, but train and test methods
     environment = Environment()
     agent = DeepQLearningAgent(environment)
 
     #n_episodes = 800
-    n_episodes = 20
+    n_episodes = 800
     episode_length = 200
     ####n_episodes = 25
     print('agent training started')

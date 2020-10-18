@@ -1,6 +1,8 @@
 from collections import namedtuple
 from itertools import count
 import random
+import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -101,13 +103,16 @@ class DeepQLearningAgent:
         return self.environment.reset(train_initial_state_variables)
 
     def train5(self, df_train,df_train2,df_train3,df_train4,df_train5, n_episodes, episode_length):
-
+        list_reward = []
+        x = np.arange(n_episodes)
         length_df_train = df_train.shape[0]
         length_df_train2 = df_train2.shape[0]
         length_df_train3 = df_train3.shape[0]
         length_df_train4 = df_train4.shape[0]
         length_df_train5 = df_train5.shape[0]
         for i_episode in range(n_episodes):
+            if (i_episode % 1 == 0):
+                print ("Episode: ", i_episode)
             lower_index = random.randrange(length_df_train - episode_length)
             lower_index2 = random.randrange(length_df_train2 - episode_length)
             lower_index3 = random.randrange(length_df_train3 - episode_length)
@@ -154,16 +159,23 @@ class DeepQLearningAgent:
                 self.optimize_model()
 
             if (i_episode % 1 == 0):
-                print ("total_episode_reward: ", total_episode_reward)
+                list_reward.append(int(total_episode_reward[0][0]))
+                print ("total_episode_reward: ", int(total_episode_reward[0][0]))
 
             if i_episode % self.target_update == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        torch.save(self.policy_net.state_dict(), "policy_net")   
+        torch.save(self.policy_net.state_dict(), "policy_net") 
+        plt.plot(x,list_reward) # คำสั่งวาดกราฟ
+        plt.show() # คำสั่งให้แสดง  
 
     def train(self, df_train, n_episodes, episode_length):
+        list_reward = []
+        x = np.arange(n_episodes)
         length_df_train = df_train.shape[0]
         for i_episode in range(n_episodes):
+            if (i_episode % 1 == 0):
+                print ("Episode: ", i_episode)
             lower_index = random.randrange(length_df_train - episode_length)
             df_train_episode =  df_train[ (df_train.index >= lower_index) * ((df_train.index < lower_index + episode_length)) ]
             state = self.reset_environment_training(df_train_episode) 
@@ -189,34 +201,34 @@ class DeepQLearningAgent:
                 next_state = torch.tensor([next_state], dtype=torch.float)
                 if (index == df_train_episode.index[-1]):
                     next_state = None
-
                 self.memory.push(state, action, next_state, reward)
-                                
                 total_episode_reward += reward
                 state = next_state
-
                 self.optimize_model()
 
             if (i_episode % 1 == 0):
-                print ("total_episode_reward: ", total_episode_reward)
+                list_reward.append(int(total_episode_reward[0][0]))
+                print ("total_episode_reward: ", int(total_episode_reward[0][0]))
 
             if i_episode % self.target_update == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
-
-        torch.save(self.policy_net.state_dict(), "policy_net")
+        torch.save(self.policy_net.state_dict(), "policy_net") 
+        plt.plot(x,list_reward) # คำสั่งวาดกราฟ
+        plt.show() # คำสั่งให้แสดง
+        
         
     def test(self, df_test):
         state = self.reset_environment_training(df_test) 
         total_reward = 0 
         total_discounted_reward = 0
-
+        list_reward = []
+        
         self.policy_net.load_state_dict(torch.load("policy_net"))
         self.policy_net.eval()
         i = 0
-
         for index, row in df_test.iterrows():
             i += 1
-            if (i <= 16):
+            if (i <= 17):
                 continue
             state = torch.tensor([state], dtype=torch.float)
             action = self.policy_net(state).max(1)[1].view(1, 1)
@@ -225,11 +237,21 @@ class DeepQLearningAgent:
             
             obs = get_obs_from_df_row(row)
             next_state, reward = self.environment.step(action, obs)
+            list_reward.append(reward * self.gamma**(i-17))
+            #print('index',index)
+            #print(i,"---------------------------")
+            #print(reward * self.gamma**(i-17))
+            text = 'index'+""+str(index)+" "+str(i)+"--------------------------- "+str(reward * self.gamma**(i-17))
+            #print(text)
             total_reward += reward
             total_discounted_reward += reward * self.gamma**(i-17)
             state = next_state
         print ("Test set reward ", total_reward)
         print ("Test set discounted reward ", total_discounted_reward)
+        #print(list_reward)
+        x = np.arange(len(list_reward))
+        plt.plot(x,list_reward) # คำสั่งวาดกราฟ
+        plt.show() # คำสั่งให้แสดง
         
         
     def test_random_policy(self, df_test):
